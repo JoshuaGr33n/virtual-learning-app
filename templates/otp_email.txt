@@ -1,0 +1,4 @@
+
+Dear {{ user.username }},
+Your {{ status }} OTP is: {{ otp }}
+It will expire in 5 minutes.

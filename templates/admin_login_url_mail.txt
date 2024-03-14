@@ -1,0 +1,4 @@
+
+Dear {{ user.username }},
+Your Login Url is: {{ url }}
+

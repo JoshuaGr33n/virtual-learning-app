@@ -1,0 +1,56 @@
+<script src="https://js.stripe.com/v3/"></script>
+
+<form id="payment-form">
+    <div id="card-element">
+      <!-- Elements will create input fields here -->
+    </div>
+  
+    <button id="submit-button">Pay</button>
+  </form>
+  
+  <script>
+    var stripe = Stripe('pk_KEY');
+    var elements = stripe.elements();
+  
+    var card = elements.create('card');
+    card.mount('#card-element');
+
+
+
+
+
+
+
+var form = document.getElementById('payment-form');
+
+form.addEventListener('submit', function(event) {
+  event.preventDefault();
+
+  stripe.createToken(card).then(function(result) {
+    if (result.error) {
+      // Handle errors in result.error.message.
+      console.log(result.error.message);
+    } else {
+      // Send the token to the server.
+      stripeTokenHandler(result.token);
+    }
+  });
+});
+
+function stripeTokenHandler(token) {
+  // Insert the token ID into the form so it gets submitted to the server
+  var form = document.getElementById('payment-form');
+  var hiddenInput = document.createElement('input');
+  hiddenInput.setAttribute('type', 'hidden');
+  hiddenInput.setAttribute('name', 'stripeToken');
+  hiddenInput.setAttribute('value', token.id);
+  form.appendChild(hiddenInput);
+
+  console.log(token.id);
+
+  // Submit the form
+//   form.submit();
+}
+
+  </script>
+
