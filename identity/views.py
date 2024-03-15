@@ -118,6 +118,25 @@ class ResetPasswordAPIView(APIView):
             return Response({"message": "Password reset successfully"}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)    
 
+
+class LogoutAPIView(APIView):
+    permission_classes = [IsAuthenticated, IsVerifiedUser]
+
+    def post(self, request):
+        print(request.data)
+        try:
+            # Assuming the refresh token is sent in the body of the request
+            refresh_token = request.data.get('refresh_token')
+            if refresh_token is None:
+                return Response({"error": "Refresh token not provided."}, status=status.HTTP_400_BAD_REQUEST)
+
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+
+            return Response({"message": f"Logged out successfully"}, status=status.HTTP_205_RESET_CONTENT)
+        except TokenError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+     
  
  
 
