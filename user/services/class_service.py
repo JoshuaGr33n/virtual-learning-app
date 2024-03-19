@@ -1,15 +1,20 @@
 from repositories.repository import Repository
 from classes.models import *
 from ..serializers import  *
+from ..models import *
+from classes.serializers import *
 from rest_framework.response import Response
 from rest_framework import status
 from django.http import Http404
+from django.db.models import Q
+
 
 class ClassService:
     
     def __init__(self):
         self.online_class_repository = Repository(OnlineClass)  # Ensure this is defined
         self.repository = Repository(ClassEnrollment)
+        self.friend_repository = Repository(FriendRequest)
      
     def paid_classes(self, user):
         enrollments = self.repository.filter_objects(user=user, paid=True)
@@ -60,3 +65,32 @@ class ClassService:
                 return True
         else:
             raise PermissionError("You not authorized to update this enrollment")      
+    
+    
+    def user_enrollments(self, user):  
+        enrollments = self.repository.filter_objects(user=user)
+        if enrollments.exists():
+            serializer = ListClassEnrollmentsSerializer(enrollments, many=True)
+            return serializer.data 
+        else:
+            return []      
+        
+    
+    def user_friends(self, user, request):  
+        friends = self.friend_repository.filters(Q(sender=user) | Q(receiver=user), status='accepted')
+        if friends.exists():
+            serializer = UserFriendSerializer(friends, many=True, context={'request': request})
+            return serializer.data 
+        else:
+            return []             
+    
+    def user_friend_requests(self, user):  
+        requests = self.friend_repository.filters(Q(sender=user) | Q(receiver=user), status='sent')
+        if requests.exists():
+            serializer = UserFriendRequestsSerializer(requests, many=True)
+            return serializer.data 
+        else:
+            return []  
+        
+     
+  

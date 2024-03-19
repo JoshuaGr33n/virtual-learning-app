@@ -34,8 +34,8 @@ class Repository:
     def filter_objects(self, **filters):
         return self.model.objects.filter(**filters)
     
-    def filters(self, **kwargs):
-        return self.model.objects.filter(**kwargs)
+    def filters(self, *args, **kwargs):
+        return self.model.objects.filter(*args, **kwargs)
     
     def get_all_objects(self):
         return self.model.objects.all()

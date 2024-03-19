@@ -2,17 +2,29 @@ import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from asgiref.sync import sync_to_async
 from channels.db import database_sync_to_async
-# from .models import Group, Message, FileMessage
 from .models import * 
 from django.core.files.base import ContentFile
+import jwt
+from urllib.parse import parse_qs
 
 class Consumer(AsyncWebsocketConsumer):
     async def connect(self):
+        # self.user = self.scope["user"]
         self.class_id = self.scope['url_route']['kwargs']['class_id']
         self.group_name = f"online_class_{self.class_id}"
+        query_string = parse_qs(self.scope['query_string'].decode())
+        token = query_string.get('token', [None])[0]
+        user = await self.get_user_from_jwt(token)
+        
+        if user is None:
+            # If no user, close the connection
+            await self.close(code=4001)
+            return
+        
+        self.user = user 
         
        # Check if class exists
-        if await self.is_class_exists(self.class_id):
+        if await self.is_class_exists(self.class_id) and await self.is_user_verified(self.user) and await self.is_user_enrolled(self.class_id, self.user):
             # Join class group if class exists
             await self.channel_layer.group_add(
                 self.group_name,
@@ -20,7 +32,7 @@ class Consumer(AsyncWebsocketConsumer):
             )
             await self.accept()
         else:
-            # Reject the connection if class does not exist
+            # Reject the connection if class does not exist or user not enrolled or verified
             await self.close(code=4001) 
 
     async def disconnect(self, close_code):
@@ -102,16 +114,45 @@ class Consumer(AsyncWebsocketConsumer):
                 'message': 'Background image not found'
             }))
 
-
-    @database_sync_to_async
-    def is_class_exists(self, class_id):
-        return OnlineClass.objects.filter(id=class_id).exists()
     def get_background_image(self, background_id):
         try:
             return ClassBackgroundImage.objects.get(id=background_id)
         except ClassBackgroundImage.DoesNotExist:
             return None
         
+        
+    @database_sync_to_async
+    def is_class_exists(self, class_id):
+        return OnlineClass.objects.filter(id=class_id).exists()
+    
+    @database_sync_to_async
+    def is_user_enrolled(self, class_id, user):
+        if not user.is_authenticated:
+            return False
+        enrollment = ClassEnrollment.objects.filter(online_class_id=class_id, user=user)
+        if enrollment.first().enrollment_status == 'Cancelled':
+            return False
+        return enrollment.exists()
+    
+    @database_sync_to_async
+    def is_user_verified(self, user):
+        if user.is_verified == 0:
+           return False
+        return True
+    
+    @database_sync_to_async
+    def get_user_from_jwt(self, token):
+        try:
+            # Decode the token
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+            
+            # Get the user from the payload
+            user_id = payload.get('user_id')
+            if user_id:
+                return User.objects.get(id=user_id)
+        except (jwt.ExpiredSignatureError, jwt.DecodeError, jwt.InvalidTokenError, User.DoesNotExist):
+            return None
+    
     @database_sync_to_async
     def save_message(self, sender_id, class_id, text):
         sender = User.objects.get(id=sender_id)  # Retrieve the sender user instance
@@ -129,4 +170,6 @@ class Consumer(AsyncWebsocketConsumer):
         filename = f"{file_type}_{sender_id}_{message.created_at.strftime('%Y%m%d_%H%M%S')}.dat"
         message.file.save(filename, ContentFile(bytes_data))
         return message
+    
+    
     

@@ -1,4 +1,3 @@
-
 from rest_framework import serializers
 from .models import *
 from classes.models import *
@@ -48,7 +47,7 @@ class UserPaidClassSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ClassEnrollment
-        fields = ['online_class', 'id','payment_date', 'amount_paid', 'enrollment_status']  # Include desired fields from ClassEnrollment
+        fields = ['online_class', 'id','payment_date', 'amount_paid', 'enrollment_status']
 
     def get_online_class(self, obj):
         status = 'Class Deactivated' if not obj.online_class.is_active else 'Active'
@@ -93,3 +92,88 @@ class DeleteProfileRequestSerializer(serializers.ModelSerializer):
         instance.request_delete = True
         instance.save()
         return instance  
+    
+    
+
+class FriendRequestCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FriendRequest
+        fields = ['id', 'sender', 'receiver']
+        read_only_fields = ['sender', 'id']  # 'sender' is determined by the logged-in user
+    
+    def validate_receiver(self, value):
+        sender = self.context['request'].user
+        if sender == value:
+            raise serializers.ValidationError("You cannot send a friend request to yourself.")
+       
+        sent = FriendRequest.objects.filter(sender=sender, receiver=value).first()
+        received = FriendRequest.objects.filter(sender=value, receiver=sender).first()
+        
+        if sent:
+            if sent.status == 'declined':
+                # Update the status of the previously declined request instead of creating a new one
+                sent.status = 'sent'
+                sent.save(update_fields=['status'])
+                raise serializers.ValidationError("The friend request has been re-sent.")
+            elif sent.status == 'accepted':
+                raise serializers.ValidationError("You are already friends with this user.") 
+            else:
+                raise serializers.ValidationError("A friend request has already been sent to this user.")
+        
+        if received:
+            if received.status == 'declined':
+                # Update the status of the previously declined request instead of creating a new one
+                received.status = 'sent'
+                received.receiver = value
+                received.sender = self.context['request'].user
+                received.save(update_fields=['status', 'receiver','sender'])
+                raise serializers.ValidationError("The friend request has been re-sent.")
+            elif received.status == 'accepted':
+                raise serializers.ValidationError("You are already friends with this user.") 
+            else:
+                raise serializers.ValidationError("You already received a friend request from this user")
+        
+        return value
+    
+    def create(self, validated_data):
+        return super().create(validated_data)
+    
+    
+    
+class FriendRequestUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FriendRequest
+        fields = ['status']
+
+
+class UserFriendSerializer(serializers.ModelSerializer):
+    friend_username = serializers.SerializerMethodField()
+    class Meta:
+        model = FriendRequest
+        fields = ['friend_username', 'status']
+        
+    def get_friend_username(self, obj):
+        request_user = self.context.get('request').user if 'request' in self.context else None
+
+        if request_user:
+            if obj.sender == request_user:
+                return obj.receiver.username
+            else:
+                return obj.sender.username
+        else:
+            return None
+
+
+class UserFriendRequestsSerializer(serializers.ModelSerializer):
+    receiver = serializers.SerializerMethodField()
+    sender = serializers.SerializerMethodField()
+    class Meta:
+        model = FriendRequest
+        fields = ['id', 'sender', 'receiver', 'status']
+        
+    def get_sender(self, obj):
+        return obj.sender.username
+    
+    def get_receiver(self, obj):
+        return obj.receiver.username    
+            

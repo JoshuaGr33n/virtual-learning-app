@@ -1,8 +1,8 @@
 // Example class_id value
 const class_id = 123; // This should be dynamically set based on the application's logic
-
+const token = 'BEARER_TOKEN_HERE'
 // Construct the WebSocket URL using the class_id
-const wsURL = `ws://127.0.0.1:9090/ws/class/${class_id}/`;
+const wsURL = `ws://127.0.0.1:9090/ws/class/${class_id}/?token=${token}`;
 
 // Create a new WebSocket connection using the constructed URL
 const socket = new WebSocket(wsURL);

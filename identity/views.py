@@ -82,8 +82,8 @@ class UserLoginAPIView(APIView):
             refresh = RefreshToken.for_user(user)
             return Response({
                 "message":'Login Successful',
-                'refresh': str(refresh),
                 'access': str(refresh.access_token),
+                'refresh': str(refresh),  
             })
 
         return Response(serializer.errors, status=status.HTTP_401_UNAUTHORIZED) 

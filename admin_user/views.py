@@ -252,4 +252,45 @@ class AdminCancelUserProfileDeleteRequestAPIView(APIView):
             serializer.save()
             return Response({'message': 'Delete request cancelled'}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-          
+
+
+class AdminApproveClassPaymentView(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+    def post(self, request, class_id):
+        serializer = AdminApproveClassPaymentSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.validated_data.get('user')
+            service = AdminApproveClassPaymentService()
+            try:
+                result, http_status = service.approve_payment(user, class_id)
+                return Response(result, status=http_status)
+            except Http404 as e:
+                return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AdminListClassEnrollmentsView(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+    def get(self, request, *args, **kwargs):
+        class_service = ClassService()
+        enrollments = class_service.get_all_enrollments()
+        if enrollments:
+            return Response(enrollments, status=status.HTTP_200_OK)
+        else:
+            return Response({'message': 'No enrollments created'}, status=status.HTTP_404_NOT_FOUND)
+  
+
+class AdminListUserEnrollmentsView(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+    def get(self, request, pk, *args, **kwargs):
+        class_service = ClassService()
+        try:
+            enrollments = class_service.get_user_enrollments(pk)
+            if enrollments:
+                return Response(enrollments, status=status.HTTP_200_OK)
+            else:
+                return Response({'message': 'No enrollments created'}, status=status.HTTP_404_NOT_FOUND)
+            
+        except Http404 as e:
+                return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)

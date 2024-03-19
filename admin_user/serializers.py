@@ -276,4 +276,19 @@ class AdminCancelDeleteProfileRequestSerializer(serializers.ModelSerializer):
         instance.is_deleted = False
         instance.deleted_date = None
         instance.save()
-        return instance         
+        return instance   
+
+
+class AdminApproveClassPaymentSerializer(serializers.ModelSerializer):
+    user = serializers.IntegerField(write_only=True, required=True)
+
+    class Meta:
+        model = ClassEnrollment
+        fields = ['user'] 
+
+    def validate_user_id(self, value):
+        if not get_user_model().objects.filter(id=value).exists():
+            raise serializers.ValidationError("User does not exist.")
+        return value
+
+

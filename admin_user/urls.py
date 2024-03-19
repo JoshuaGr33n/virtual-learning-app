@@ -24,7 +24,9 @@ urlpatterns = [
    
     path('classes/<uuid:class_id>/activate/', ActivateClassView.as_view(), name='activate-class'),
     path('classes/<uuid:class_id>/deactivate/', DeactivateClassView.as_view(), name='deactivate-class'),
-     path('enrollments/<uuid:enrollment_id>/activate/', AdminEnrollmentStatusUpdateView.as_view(), {'status': 'Active'}, name='activate-enrollment'),
+    path('enrollments/<uuid:enrollment_id>/activate/', AdminEnrollmentStatusUpdateView.as_view(), {'status': 'Active'}, name='activate-enrollment'),
+    path('enrollments/', AdminListClassEnrollmentsView.as_view(), name='enrollments'),
+    path('user-enrollments/<int:pk>/', AdminListUserEnrollmentsView.as_view(), name='user-enrollments'),
     
     path('user/<int:pk>/deactivate/', AdminManageUserProfileView.as_view(), {'status': 'deactivate'}, name='deactivate-user'),
     path('user/<int:pk>/activate/', AdminManageUserProfileView.as_view(), {'status': 'activate'}, name='activate-user'),
@@ -33,6 +35,10 @@ urlpatterns = [
     
      path('approve-profile-delete-request/<int:pk>', AdminApproveUserProfileDeleteRequestAPIView.as_view(), name='approve-profile-delete-request'),
      path('cancel-delete-profile-request/<int:pk>', AdminCancelUserProfileDeleteRequestAPIView.as_view(), name='cancel-delete-profile-request'),
+     
+     path('classes/<uuid:class_id>/approve-payment/', AdminApproveClassPaymentView.as_view(), name='approve-payment'),
+     
+    
    
 ]
   

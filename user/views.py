@@ -128,9 +128,75 @@ class UserDeleteProfileRequestAPIView(APIView):
             return Response({'message': 'Success! Account will be deleted 30 days after admin approval.'}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
- 
- 
+
+class UserListEnrollmentsView(APIView):
+    permission_classes = [IsAuthenticated, IsVerifiedUser]
+    def get(self, request, *args, **kwargs):
+        class_service = ClassService()
+        user = request.user
+        enrollments = class_service.user_enrollments(user)
+        if enrollments:
+            return Response(enrollments, status=status.HTTP_200_OK)
+        else:
+            return Response({'message': 'No enrollments created'}, status=status.HTTP_404_NOT_FOUND)
+  
+  
+class SendFriendRequestView(APIView):
+    permission_classes = [IsAuthenticated, IsVerifiedUser]
+
+    def post(self, request):
+        serializer = FriendRequestCreateSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            serializer.save(sender=request.user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)  
+  
+  
+class UpdateFriendRequestView(APIView):
+    permission_classes = [IsAuthenticated, IsVerifiedUser]
+    def patch(self, request, pk):
+        try:
+            friend_request = FriendRequest.objects.get(pk=pk, receiver=request.user)
+        except FriendRequest.DoesNotExist:
+            return Response({'message': 'Friend request not found.'}, status=status.HTTP_404_NOT_FOUND)
+        if friend_request.status == 'sent':
+            serializer = FriendRequestUpdateSerializer(friend_request, data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        else:
+             return Response({'message': 'Friend request no longer available'}, status=status.HTTP_404_NOT_FOUND)
+            
+
+class UserListFriendsView(APIView):
+    permission_classes = [IsAuthenticated, IsVerifiedUser]
+    def get(self, request, *args, **kwargs):
+        class_service = ClassService()
+        user = request.user
+        friends = class_service.user_friends(user, request)
+        if friends:
+            return Response(friends, status=status.HTTP_200_OK)
+        else:
+            return Response({'message': 'No friends yet'}, status=status.HTTP_404_NOT_FOUND)
+    
+
+class UserFriendRequestsView(APIView):
+    permission_classes = [IsAuthenticated, IsVerifiedUser]
+    def get(self, request, *args, **kwargs):
+        class_service = ClassService()
+        user = request.user
+        friends = class_service.user_friend_requests(user)
+        if friends:
+            return Response(friends, status=status.HTTP_200_OK)
+        else:
+            return Response({'message': 'No friends requests yet'}, status=status.HTTP_404_NOT_FOUND)
+        
+    
 def test_stripe(request):
     return render(request, 'stripe.html', {})
+
+
+
         
         

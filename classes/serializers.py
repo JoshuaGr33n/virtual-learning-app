@@ -67,4 +67,13 @@ class GetClassMessagesSerializer(serializers.ModelSerializer):
         fields = ['id', 'class_id', 'text', 'file', 'created_at', 'sender_id', 'edited'] 
         read_only_fields = ['id', 'class_id', 'file', 'created_at', 'sender_id', 'edited'] 
 
+
+class ListClassEnrollmentsSerializer(serializers.ModelSerializer):
+   username = serializers.SerializerMethodField()
+   class Meta:
+        model = ClassEnrollment
+        fields = ['id', 'paid', 'payment_date', 'user', 'username', 'online_class', 'amount_paid', 'enrollment_status'] 
     
+    
+   def get_username(self, obj):
+        return f'{obj.user.username}' if obj.user else None
